@@ -5,8 +5,10 @@ services:
     plan: free
     buildCommand: |
       cd frontend && npm install && npm run build
-      cd ../backend && pip install -r requirements.txt
       cd ..
+      rm -rf backend/static && mkdir -p backend/static
+      cp -r frontend/out/* backend/static/
+      cd backend && pip install -r requirements.txt
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
@@ -19,8 +21,6 @@ services:
           property: connectionString
       - key: NEXT_PUBLIC_API_URL
         value: https://college-football-voting-app.onrender.com
-      - key: PORT
-        value: 10000
     healthCheckPath: /health
 
 databases:

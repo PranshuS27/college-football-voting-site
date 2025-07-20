@@ -21,10 +21,10 @@ if DATABASE_URL:
 else:
     print("⚠️  No DATABASE_URL found, using default")
 
-# Serve static files from the frontend build directory
+# Serve static files from the backend/static directory
 @app.route('/')
 def serve_frontend():
-    return send_from_directory('frontend/out', 'index.html')
+    return send_from_directory('backend/static', 'index.html')
 
 @app.route('/<path:path>')
 def serve_static(path):
@@ -35,10 +35,10 @@ def serve_static(path):
     
     # Serve static files
     try:
-        return send_from_directory('frontend/out', path)
+        return send_from_directory('backend/static', path)
     except:
         # Fallback to index.html for client-side routing
-        return send_from_directory('frontend/out', 'index.html')
+        return send_from_directory('backend/static', 'index.html')
 
 # Health check endpoint for Render
 @app.route('/health')
