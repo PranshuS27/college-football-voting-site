@@ -12,15 +12,6 @@ A full-stack web application for voting on college football team rankings with r
 - **Copy Ballot**: One-click clipboard copying of your rankings
 - **Responsive Design**: Works on desktop and mobile devices
 
-## 🛡️ Security Notice
-
-**⚠️ IMPORTANT**: This repository contains sensitive configuration files. Before making it public:
-
-1. **Remove hardcoded credentials** from all files
-2. **Use environment variables** for all secrets
-3. **Update database URLs** to use placeholder values
-4. **Generate strong SECRET_KEY** for production
-
 ## 🚀 Quick Start
 
 ### Prerequisites
