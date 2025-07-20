@@ -1,6 +1,6 @@
 from flask import Flask, send_from_directory, request, jsonify
 from flask_cors import CORS
-from app import create_app
+from backend.app import create_app
 import os
 
 # Create the Flask app
