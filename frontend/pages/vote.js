@@ -236,9 +236,9 @@ export default function Vote() {
                           >
                             <Text>{team.name}</Text>
                           </Box>
-                        ))}
+        ))}
                     </VStack>
-                  </Box>
+      </Box>
                 </VStack>
               </CardBody>
             </Card>
@@ -265,7 +265,7 @@ export default function Vote() {
                   
                   <DragDropContext onDragEnd={handleDragEnd}>
                     <Droppable droppableId="selected-teams">
-                      {(provided) => (
+            {(provided) => (
                         <Box
                           {...provided.droppableProps}
                           ref={provided.innerRef}
@@ -279,9 +279,9 @@ export default function Vote() {
                             <Draggable key={team.id} draggableId={team.id.toString()} index={index}>
                               {(provided, snapshot) => (
                                 <Box
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
                                   p={3}
                                   mb={2}
                                   bg={snapshot.isDragging ? 'blue.50' : cardBg}
@@ -304,14 +304,14 @@ export default function Vote() {
                                     </Text>
                                   </HStack>
                                 </Box>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-                        </Box>
-                      )}
-                    </Droppable>
-                  </DragDropContext>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </Box>
+            )}
+          </Droppable>
+        </DragDropContext>
                 </VStack>
               </CardBody>
             </Card>
@@ -327,8 +327,8 @@ export default function Vote() {
             isDisabled={selectedTeams.length !== 25}
           >
             Submit Vote for Week {week}
-          </Button>
-          
+        </Button>
+
           {selectedTeams.length > 0 && selectedTeams.length < 25 && (
             <Text fontSize="sm" color="gray.600">
               Need {25 - selectedTeams.length} more teams to submit your vote
