@@ -1,56 +1,112 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import axios from 'axios'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 const AuthContext = createContext()
 
-export function AuthProvider({ children }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [username, setUsername] = useState('')
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const checkAuthStatus = async () => {
+  const checkAuth = async () => {
     try {
-      setLoading(true)
-      const response = await axios.get(`${API_URL}/api/auth/me`, { withCredentials: true })
-      setIsLoggedIn(true)
-      setUsername(response.data.username)
+      const response = await fetch(`${API_URL}/api/auth/me`, {
+        credentials: 'include'
+      })
+      if (response.ok) {
+        const userData = await response.json()
+        setUser(userData)
+      } else {
+        setUser(null)
+      }
     } catch (error) {
-      setIsLoggedIn(false)
-      setUsername('')
+      console.error('Auth check failed:', error)
+      setUser(null)
     } finally {
       setLoading(false)
     }
   }
 
-  const login = async (loginUsername) => {
-    setIsLoggedIn(true)
-    setUsername(loginUsername)
+  const login = async (username, password) => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username, password }),
+      })
+
+      if (response.ok) {
+        const userData = await response.json()
+        setUser(userData)
+        return { success: true }
+      } else {
+        const error = await response.json()
+        return { success: false, error: error.error }
+      }
+    } catch (error) {
+      return { success: false, error: 'Network error' }
+    }
+  }
+
+  const register = async (username, password) => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username, password }),
+      })
+
+      if (response.ok) {
+        const userData = await response.json()
+        setUser(userData)
+        return { success: true }
+      } else {
+        const error = await response.json()
+        return { success: false, error: error.error }
+      }
+    } catch (error) {
+      return { success: false, error: 'Network error' }
+    }
   }
 
   const logout = async () => {
     try {
-      await axios.post(`${API_URL}/api/auth/logout`, {}, { withCredentials: true })
+      await fetch(`${API_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      })
     } catch (error) {
-      console.error('Logout failed:', error)
+      console.error('Logout error:', error)
     } finally {
-      setIsLoggedIn(false)
-      setUsername('')
+      setUser(null)
     }
   }
 
   useEffect(() => {
-    checkAuthStatus()
+    checkAuth()
   }, [])
 
   const value = {
-    isLoggedIn,
-    username,
+    user,
     loading,
-    checkAuthStatus,
     login,
-    logout
+    register,
+    logout,
+    checkAuth
   }
 
   return (
@@ -58,12 +114,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
 } 
