@@ -2,17 +2,7 @@
 
 A full-stack web application for voting on college football team rankings with real-time consensus calculations and leaderboards.
 
-## 🏈 Features
-
-- **User Authentication**: Secure login/registration system
-- **Voting System**: Drag-and-drop interface for ranking top 25 teams
-- **Real-time Consensus**: Automatic calculation of community rankings
-- **Leaderboard**: Overall team standings across all weeks
-- **Vote History**: Track your past ballots and results
-- **Copy Ballot**: One-click clipboard copying of your rankings
-- **Responsive Design**: Works on desktop and mobile devices
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -59,7 +49,7 @@ A full-stack web application for voting on college football team rankings with r
    npm run dev
    ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -84,7 +74,7 @@ The app supports multiple database options:
 - **Supabase** (Cloud PostgreSQL)
 - **Render PostgreSQL** (Cloud database)
 
-## 🏗️ Architecture
+## Architecture
 
 ### Backend (Flask)
 - **Framework**: Flask with SQLAlchemy ORM
@@ -104,7 +94,7 @@ The app supports multiple database options:
 - **Consensus Engine**: Real-time vote aggregation
 - **Leaderboard**: Team standings calculation
 
-## 📊 API Endpoints
+## API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - User registration
@@ -119,58 +109,3 @@ The app supports multiple database options:
 - `GET /api/vote/consensus/{week}` - Get consensus for week
 - `GET /api/vote/leaderboard/overall` - Get overall leaderboard
 
-## 🚀 Deployment
-
-### Free Deployment Options
-
-1. **Vercel** (Frontend) + **Render** (Backend + Database)
-2. **Vercel** (Frontend) + **Supabase** (Database) + **Render** (Backend)
-
-See `DEPLOYMENT.md` for detailed instructions.
-
-## 🔒 Security Best Practices
-
-### Before Making Public
-
-1. **Environment Variables**
-   - Move all secrets to environment variables
-   - Never commit `.env` files
-   - Use placeholder values in examples
-
-2. **Database Security**
-   - Use strong passwords
-   - Enable SSL connections
-   - Restrict database access
-
-3. **Application Security**
-   - Generate strong SECRET_KEY
-   - Enable HTTPS in production
-   - Set secure cookie options
-
-4. **Code Review**
-   - Remove hardcoded credentials
-   - Sanitize user inputs
-   - Validate all API requests
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-For issues and questions:
-1. Check the documentation
-2. Review existing issues
-3. Create a new issue with details
-
----
-
-**🏈 Go Team!** 
