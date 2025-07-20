@@ -6,7 +6,7 @@ A full-stack web application for voting on college football team rankings with r
 
 ### Prerequisites
 
-- Docker and Docker Compose
+- Docker and Docker Compose (for local development)
 - Node.js 18+ (for local development)
 - Python 3.11+ (for local development)
 
@@ -30,8 +30,7 @@ A full-stack web application for voting on college football team rankings with r
    ```
 
 4. **Access the application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000
+   - Application: http://localhost:5000
 
 ### Manual Setup
 
@@ -39,7 +38,7 @@ A full-stack web application for voting on college football team rankings with r
    ```bash
    cd backend
    pip install -r requirements.txt
-   python run.py
+   python app.py
    ```
 
 2. **Frontend Setup**
@@ -76,6 +75,14 @@ The app supports multiple database options:
 
 ## Architecture
 
+### Production Deployment (Render)
+
+The app is designed for deployment on Render with a two-service architecture:
+
+- **Backend Service**: Flask API running on Python
+- **Frontend Service**: Next.js app running on Node.js
+- **Database**: PostgreSQL managed by Render
+
 ### Backend (Flask)
 - **Framework**: Flask with SQLAlchemy ORM
 - **Database**: PostgreSQL with psycopg2
@@ -108,4 +115,19 @@ The app supports multiple database options:
 - `GET /api/vote/my_votes` - Get user's vote history
 - `GET /api/vote/consensus/{week}` - Get consensus for week
 - `GET /api/vote/leaderboard/overall` - Get overall leaderboard
+
+## Deployment
+
+### Render Deployment
+
+See `RENDER_DEPLOYMENT.md` for detailed deployment instructions.
+
+The app uses a two-service architecture:
+- **Backend**: Flask API service
+- **Frontend**: Next.js service
+- **Database**: Render PostgreSQL
+
+### Local Development
+
+For local development, the app runs as a single service using Docker Compose, serving both frontend and backend from the same domain.
 

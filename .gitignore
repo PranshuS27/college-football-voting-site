@@ -6,6 +6,9 @@ yarn-error.log*
 package-lock.json
 yarn.lock
 
+# Svelte (not used in this Next.js project)
+.svelte-kit/
+
 # Python
 __pycache__/
 *.py[cod]

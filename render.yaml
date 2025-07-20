@@ -1,13 +1,9 @@
 services:
   - type: web
-    name: college-football-voting-app
+    name: college-football-backend
     env: python
     plan: free
     buildCommand: |
-      cd frontend && npm install && npm run build
-      cd ..
-      rm -rf backend/static && mkdir -p backend/static
-      cp -r frontend/out/* backend/static/
       cd backend && pip install -r requirements.txt
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
     envVars:
@@ -19,9 +15,21 @@ services:
         fromDatabase:
           name: college-football-voting-db
           property: connectionString
-      - key: NEXT_PUBLIC_API_URL
-        value: https://college-football-voting-app.onrender.com
     healthCheckPath: /health
+
+  - type: web
+    name: college-football-frontend
+    env: node
+    plan: free
+    buildCommand: |
+      cd frontend && npm install && npm run build
+    startCommand: |
+      cd frontend && npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.0.0
+      - key: NEXT_PUBLIC_API_URL
+        value: https://college-football-backend.onrender.com
 
 databases:
   - name: college-football-voting-db
