@@ -4,152 +4,186 @@ Script to update Supabase database schema
 Run this to fix the password_hash field length issue
 """
 
-import os
 import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+import os
+from psycopg2.extras import RealDictCursor
 
-# Your Supabase connection details
-DATABASE_URL = "postgresql://postgres.zblmmazitumwacgmakot:UwiRcMEYOLz8pOhF@aws-0-us-east-2.pooler.supabase.com:5432/postgres"
+# Get database URL from environment variable
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://user:password@localhost:5432/football_votes')
 
-def update_schema():
-    """Update the Supabase database schema"""
-    
-    print("🔧 Updating Supabase database schema...")
+def create_tables():
+    """Create the necessary tables for the voting system"""
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
     
     try:
-        # Connect to Supabase
-        conn = psycopg2.connect(DATABASE_URL)
-        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        cursor = conn.cursor()
-        
-        print("✅ Connected to Supabase database")
-        
-        # Check current schema
-        cursor.execute("""
-            SELECT column_name, data_type, character_maximum_length 
-            FROM information_schema.columns 
-            WHERE table_name = 'user' AND column_name = 'password_hash'
-        """)
-        
-        result = cursor.fetchone()
-        if result:
-            print(f"📊 Current password_hash field: {result[1]}({result[2]})")
-        
-        # Update the password_hash field to VARCHAR(255)
-        print("🔄 Updating password_hash field to VARCHAR(255)...")
-        cursor.execute("""
-            ALTER TABLE "user" 
-            ALTER COLUMN password_hash TYPE VARCHAR(255)
-        """)
-        
-        print("✅ Schema updated successfully!")
-        
-        # Verify the change
-        cursor.execute("""
-            SELECT column_name, data_type, character_maximum_length 
-            FROM information_schema.columns 
-            WHERE table_name = 'user' AND column_name = 'password_hash'
-        """)
-        
-        result = cursor.fetchone()
-        if result:
-            print(f"📊 Updated password_hash field: {result[1]}({result[2]})")
-        
-        cursor.close()
-        conn.close()
-        
-        print("🎉 Supabase schema update complete!")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Error updating schema: {e}")
-        return False
-
-def reset_database():
-    """Complete database reset (WARNING: Deletes all data)"""
-    
-    print("⚠️  WARNING: This will delete ALL data in your Supabase database!")
-    response = input("Are you sure you want to continue? (yes/no): ")
-    
-    if response.lower() != 'yes':
-        print("❌ Operation cancelled")
-        return False
-    
-    try:
-        # Connect to Supabase
-        conn = psycopg2.connect(DATABASE_URL)
-        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        cursor = conn.cursor()
-        
-        print("🗑️  Dropping existing tables...")
-        
-        # Drop tables in correct order (due to foreign keys)
-        cursor.execute('DROP TABLE IF EXISTS "vote" CASCADE')
-        cursor.execute('DROP TABLE IF EXISTS "user" CASCADE')
-        cursor.execute('DROP TABLE IF EXISTS "team" CASCADE')
-        
-        print("🏗️  Creating new tables with correct schema...")
-        
-        # Create tables with correct schema
-        cursor.execute('''
-            CREATE TABLE "user" (
+        # Create users table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 username VARCHAR(80) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL
-            )
-        ''')
+                password_hash VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
         
-        cursor.execute('''
-            CREATE TABLE "team" (
+        # Create votes table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS votes (
                 id SERIAL PRIMARY KEY,
-                name VARCHAR(100) UNIQUE NOT NULL
-            )
-        ''')
-        
-        cursor.execute('''
-            CREATE TABLE "vote" (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL REFERENCES "user"(id),
+                user_id INTEGER REFERENCES users(id),
                 week INTEGER NOT NULL,
-                team_id INTEGER NOT NULL REFERENCES "team"(id),
-                rank INTEGER NOT NULL
-            )
-        ''')
+                rankings TEXT[] NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, week)
+            );
+        """)
         
-        # Create indexes
-        cursor.execute('CREATE INDEX idx_vote_user_week ON "vote"(user_id, week)')
-        cursor.execute('CREATE INDEX idx_vote_week ON "vote"(week)')
+        # Create teams table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS teams (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) UNIQUE NOT NULL,
+                conference VARCHAR(50),
+                division VARCHAR(50)
+            );
+        """)
         
-        cursor.close()
-        conn.close()
-        
-        print("✅ Database reset complete!")
-        return True
+        conn.commit()
+        print("Tables created successfully!")
         
     except Exception as e:
-        print(f"❌ Error resetting database: {e}")
-        return False
+        print(f"Error creating tables: {e}")
+        conn.rollback()
+    finally:
+        cur.close()
+        conn.close()
 
-def main():
-    """Main function"""
-    print("🏈 College Football Voting - Supabase Schema Update")
-    print("=" * 50)
+def seed_teams():
+    """Seed the teams table with college football teams"""
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
     
-    print("\nChoose an option:")
-    print("1. Update password_hash field only (preserves data)")
-    print("2. Reset entire database (deletes all data)")
-    print("3. Exit")
+    teams = [
+        # SEC
+        ("Alabama", "SEC", "West"),
+        ("Auburn", "SEC", "West"),
+        ("LSU", "SEC", "West"),
+        ("Mississippi State", "SEC", "West"),
+        ("Ole Miss", "SEC", "West"),
+        ("Texas A&M", "SEC", "West"),
+        ("Arkansas", "SEC", "West"),
+        ("Georgia", "SEC", "East"),
+        ("Florida", "SEC", "East"),
+        ("Tennessee", "SEC", "East"),
+        ("Kentucky", "SEC", "East"),
+        ("South Carolina", "SEC", "East"),
+        ("Missouri", "SEC", "East"),
+        ("Vanderbilt", "SEC", "East"),
+        
+        # Big Ten
+        ("Michigan", "Big Ten", "East"),
+        ("Ohio State", "Big Ten", "East"),
+        ("Penn State", "Big Ten", "East"),
+        ("Michigan State", "Big Ten", "East"),
+        ("Indiana", "Big Ten", "East"),
+        ("Maryland", "Big Ten", "East"),
+        ("Rutgers", "Big Ten", "East"),
+        ("Wisconsin", "Big Ten", "West"),
+        ("Iowa", "Big Ten", "West"),
+        ("Minnesota", "Big Ten", "West"),
+        ("Nebraska", "Big Ten", "West"),
+        ("Northwestern", "Big Ten", "West"),
+        ("Illinois", "Big Ten", "West"),
+        ("Purdue", "Big Ten", "West"),
+        
+        # ACC
+        ("Clemson", "ACC", "Atlantic"),
+        ("Florida State", "ACC", "Atlantic"),
+        ("NC State", "ACC", "Atlantic"),
+        ("Wake Forest", "ACC", "Atlantic"),
+        ("Boston College", "ACC", "Atlantic"),
+        ("Syracuse", "ACC", "Atlantic"),
+        ("Louisville", "ACC", "Atlantic"),
+        ("Miami", "ACC", "Coastal"),
+        ("North Carolina", "ACC", "Coastal"),
+        ("Virginia Tech", "ACC", "Coastal"),
+        ("Pittsburgh", "ACC", "Coastal"),
+        ("Virginia", "ACC", "Coastal"),
+        ("Georgia Tech", "ACC", "Coastal"),
+        ("Duke", "ACC", "Coastal"),
+        
+        # Big 12
+        ("Texas", "Big 12", None),
+        ("Oklahoma", "Big 12", None),
+        ("Baylor", "Big 12", None),
+        ("Kansas State", "Big 12", None),
+        ("Oklahoma State", "Big 12", None),
+        ("TCU", "Big 12", None),
+        ("Texas Tech", "Big 12", None),
+        ("Iowa State", "Big 12", None),
+        ("Kansas", "Big 12", None),
+        ("West Virginia", "Big 12", None),
+        ("BYU", "Big 12", None),
+        ("Cincinnati", "Big 12", None),
+        ("Houston", "Big 12", None),
+        ("UCF", "Big 12", None),
+        
+        # Pac-12
+        ("USC", "Pac-12", None),
+        ("UCLA", "Pac-12", None),
+        ("Oregon", "Pac-12", None),
+        ("Washington", "Pac-12", None),
+        ("Utah", "Pac-12", None),
+        ("Stanford", "Pac-12", None),
+        ("California", "Pac-12", None),
+        ("Arizona State", "Pac-12", None),
+        ("Arizona", "Pac-12", None),
+        ("Oregon State", "Pac-12", None),
+        ("Washington State", "Pac-12", None),
+        ("Colorado", "Pac-12", None),
+        
+        # Other notable teams
+        ("Notre Dame", "Independent", None),
+        ("Army", "Independent", None),
+        ("Navy", "Independent", None),
+        ("Liberty", "Conference USA", None),
+        ("Boise State", "Mountain West", None),
+        ("San Diego State", "Mountain West", None),
+        ("Fresno State", "Mountain West", None),
+        ("Air Force", "Mountain West", None),
+        ("Tulane", "American", None),
+        ("SMU", "American", None),
+        ("Memphis", "American", None),
+        ("Appalachian State", "Sun Belt", None),
+        ("Coastal Carolina", "Sun Belt", None),
+        ("Troy", "Sun Belt", None),
+        ("James Madison", "Sun Belt", None)
+    ]
     
-    choice = input("\nEnter your choice (1-3): ")
-    
-    if choice == "1":
-        update_schema()
-    elif choice == "2":
-        reset_database()
-    elif choice == "3":
-        print("👋 Goodbye!")
-    else:
-        print("❌ Invalid choice")
+    try:
+        for team in teams:
+            cur.execute("""
+                INSERT INTO teams (name, conference, division) 
+                VALUES (%s, %s, %s) 
+                ON CONFLICT (name) DO NOTHING
+            """, team)
+        
+        conn.commit()
+        print(f"Seeded {len(teams)} teams successfully!")
+        
+    except Exception as e:
+        print(f"Error seeding teams: {e}")
+        conn.rollback()
+    finally:
+        cur.close()
+        conn.close()
 
 if __name__ == "__main__":
-    main() 
+    print("Creating tables...")
+    create_tables()
+    
+    print("Seeding teams...")
+    seed_teams()
+    
+    print("Database setup complete!") 

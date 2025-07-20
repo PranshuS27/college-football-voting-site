@@ -6,24 +6,32 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - DATABASE_URL=postgresql://postgres.zblmmazitumwacgmakot:UwiRcMEYOLz8pOhF@aws-0-us-east-2.pooler.supabase.com:5432/postgres
+      - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@db:5432/football_votes}
+      - SECRET_KEY=${SECRET_KEY:-dev-key-change-in-production}
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
 
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5000
     depends_on:
       - backend
 
   db:
     image: postgres:15
-    restart: always
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: football_votes
+      - POSTGRES_DB=football_votes
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
 volumes:
-  pgdata:
+  postgres_data:

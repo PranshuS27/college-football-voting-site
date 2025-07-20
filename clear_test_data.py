@@ -5,96 +5,80 @@ Run this to remove test users so you can run tests again
 """
 
 import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+import os
+from psycopg2.extras import RealDictCursor
 
-# Your Supabase connection details
-DATABASE_URL = "postgresql://postgres.zblmmazitumwacgmakot:UwiRcMEYOLz8pOhF@aws-0-us-east-2.pooler.supabase.com:5432/postgres"
+# Get database URL from environment variable
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://user:password@localhost:5432/football_votes')
 
 def clear_test_data():
-    """Clear test users and their votes from the database"""
-    
-    print("🧹 Clearing test data from Supabase...")
+    """Clear all test data from the database"""
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
     
     try:
-        # Connect to Supabase
-        conn = psycopg2.connect(DATABASE_URL)
-        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        cursor = conn.cursor()
+        print("Clearing test data...")
         
-        print("✅ Connected to Supabase database")
+        # Clear votes
+        cur.execute("DELETE FROM votes")
+        print("✅ Cleared votes table")
         
-        # List of test usernames to remove
-        test_users = ['voter1', 'voter2', 'voter3', 'voter4', 'voter5']
+        # Clear users (except admin accounts)
+        cur.execute("DELETE FROM users WHERE username LIKE 'testuser%'")
+        print("✅ Cleared test users")
         
-        # Delete votes first (due to foreign key constraints)
-        print("🗑️  Deleting test votes...")
-        for username in test_users:
-            cursor.execute("""
-                DELETE FROM "vote" 
-                WHERE user_id IN (
-                    SELECT id FROM "user" WHERE username = %s
-                )
-            """, (username,))
+        # Keep teams (they're reference data)
+        print("✅ Kept teams (reference data)")
         
-        # Delete test users
-        print("🗑️  Deleting test users...")
-        for username in test_users:
-            cursor.execute('DELETE FROM "user" WHERE username = %s', (username,))
-            if cursor.rowcount > 0:
-                print(f"✅ Deleted user: {username}")
-            else:
-                print(f"ℹ️  User not found: {username}")
-        
-        cursor.close()
-        conn.close()
-        
+        conn.commit()
         print("🎉 Test data cleared successfully!")
-        return True
         
     except Exception as e:
         print(f"❌ Error clearing test data: {e}")
-        return False
+        conn.rollback()
+    finally:
+        cur.close()
+        conn.close()
 
-def show_current_users():
-    """Show all current users in the database"""
+def show_database_stats():
+    """Show current database statistics"""
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
     
     try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor()
+        # Count users
+        cur.execute("SELECT COUNT(*) FROM users")
+        user_count = cur.fetchone()[0]
         
-        cursor.execute('SELECT username FROM "user" ORDER BY username')
-        users = cursor.fetchall()
+        # Count votes
+        cur.execute("SELECT COUNT(*) FROM votes")
+        vote_count = cur.fetchone()[0]
         
-        print(f"📊 Current users in database ({len(users)} total):")
-        for user in users:
-            print(f"  - {user[0]}")
+        # Count teams
+        cur.execute("SELECT COUNT(*) FROM teams")
+        team_count = cur.fetchone()[0]
         
-        cursor.close()
-        conn.close()
+        print(f"📊 Database Statistics:")
+        print(f"   Users: {user_count}")
+        print(f"   Votes: {vote_count}")
+        print(f"   Teams: {team_count}")
         
     except Exception as e:
-        print(f"❌ Error showing users: {e}")
+        print(f"❌ Error getting stats: {e}")
+    finally:
+        cur.close()
+        conn.close()
 
-def main():
-    """Main function"""
+if __name__ == "__main__":
     print("🏈 College Football Voting - Test Data Cleanup")
     print("=" * 50)
     
-    print("\nChoose an option:")
-    print("1. Clear test users (voter1-voter5)")
-    print("2. Show current users")
-    print("3. Exit")
+    show_database_stats()
     
-    choice = input("\nEnter your choice (1-3): ")
-    
-    if choice == "1":
+    response = input("\nDo you want to clear all test data? (yes/no): ")
+    if response.lower() == 'yes':
         clear_test_data()
-    elif choice == "2":
-        show_current_users()
-    elif choice == "3":
-        print("👋 Goodbye!")
+        print("\nUpdated statistics:")
+        show_database_stats()
     else:
-        print("❌ Invalid choice")
-
-if __name__ == "__main__":
-    main() 
+        print("❌ Operation cancelled") 
