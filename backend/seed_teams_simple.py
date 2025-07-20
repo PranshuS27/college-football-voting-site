@@ -1,9 +1,14 @@
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#!/usr/bin/env python3
+"""
+Simple script to seed teams directly to the database
+"""
 
-from app import app
-from backend.app.models import db, Team
+import psycopg2
+import os
+from psycopg2.extras import RealDictCursor
+
+# Get database URL from environment variable
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://user:password@localhost:5432/football_votes')
 
 # FBS Teams (130 teams)
 fbs_teams = [
@@ -106,8 +111,58 @@ fcs_teams = [
 # Combine all teams
 teams = fbs_teams + fcs_teams
 
-with app.app_context():
-    for name in teams:
-        if not Team.query.filter_by(name=name).first():
-            db.session.add(Team(name=name))
-    db.session.commit()
+def seed_teams():
+    """Seed teams to the database"""
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+    
+    try:
+        print("🏈 Seeding teams to database...")
+        
+        # Check if team table exists
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'team'
+            );
+        """)
+        
+        if not cur.fetchone()[0]:
+            print("❌ Team table does not exist. Please run database migrations first.")
+            return
+        
+        # Count existing teams
+        cur.execute("SELECT COUNT(*) FROM team")
+        existing_count = cur.fetchone()[0]
+        print(f"📊 Found {existing_count} existing teams")
+        
+        # Add teams that don't exist
+        added_count = 0
+        for team_name in teams:
+            cur.execute("SELECT id FROM team WHERE name = %s", (team_name,))
+            if not cur.fetchone():
+                cur.execute("INSERT INTO team (name) VALUES (%s)", (team_name,))
+                added_count += 1
+                print(f"✅ Added: {team_name}")
+        
+        conn.commit()
+        
+        # Final count
+        cur.execute("SELECT COUNT(*) FROM team")
+        final_count = cur.fetchone()[0]
+        
+        print(f"🎉 Seeding complete!")
+        print(f"   Teams added: {added_count}")
+        print(f"   Total teams: {final_count}")
+        
+    except Exception as e:
+        print(f"❌ Error seeding teams: {e}")
+        conn.rollback()
+    finally:
+        cur.close()
+        conn.close()
+
+if __name__ == "__main__":
+    print("🏈 College Football Voting - Team Seeding")
+    print("=" * 50)
+    seed_teams() 
