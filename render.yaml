@@ -7,7 +7,7 @@ services:
       cd frontend && npm install && npm run build
       cd ../backend && pip install -r requirements.txt
       cd ..
-    startCommand: python app.py
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -21,6 +21,7 @@ services:
         value: https://college-football-voting-app.onrender.com
       - key: PORT
         value: 10000
+    healthCheckPath: /health
 
 databases:
   - name: college-football-voting-db
