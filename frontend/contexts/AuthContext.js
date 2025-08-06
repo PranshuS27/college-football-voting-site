@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   const checkAuth = async () => {
+    console.log('AuthContext: checkAuth called')
     try {
       const response = await fetch(`${API_URL}/api/auth/me`, {
         credentials: 'include'
@@ -36,6 +37,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   const login = async (username, password) => {
+    console.log('AuthContext: login called', { username, password })
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
@@ -60,6 +62,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   const register = async (username, password) => {
+    console.log('AuthContext: register called', { username, password })
     try {
       const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
@@ -84,6 +87,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = async () => {
+    console.log('AuthContext: logout called')
     try {
       await fetch(`${API_URL}/api/auth/logout`, {
         method: 'POST',
