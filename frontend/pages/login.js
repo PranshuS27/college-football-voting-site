@@ -40,6 +40,9 @@ export default function Login() {
     setLoading(true)
     setError('')
 
+    // Log the payload for debugging
+    console.log('Login payload:', { username, password })
+
     try {
       const response = await axios.post(`${API_URL}/api/auth/login`, {
         username,
