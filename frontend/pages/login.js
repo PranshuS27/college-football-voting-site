@@ -44,23 +44,20 @@ export default function Login() {
     console.log('Login payload:', { username, password })
 
     try {
-      const response = await axios.post(`${API_URL}/api/auth/login`, {
-        username,
-        password
-      }, { withCredentials: true })
-
-      // Update global auth state
-      await login(username)
-      
-      toast({
-        title: "Login successful!",
-        description: `Welcome back, ${username}!`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      })
-
-      router.push('/vote')
+      // Use only the context login function, which handles the request and user state
+      const result = await login(username, password)
+      if (result.success) {
+        toast({
+          title: "Login successful!",
+          description: `Welcome back, ${username}!`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        })
+        router.push('/vote')
+      } else {
+        setError(result.error || 'Login failed')
+      }
     } catch (error) {
       setError(error.response?.data?.error || 'Login failed')
     } finally {
