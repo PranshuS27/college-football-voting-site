@@ -2,14 +2,16 @@ import {
   Box, 
   Flex, 
   Text, 
-  Button, 
-  Badge, 
-  Container,
-  useColorModeValue,
-  HStack,
-  VStack
-} from '@chakra-ui/react'
-import { useRouter } from 'next/router'
+                {/*
+                <Button
+                  key="test"
+                  variant={isActivePage('/test-time') ? 'solid' : 'ghost'}
+                  colorScheme="brand"
+                  onClick={() => router.push('/test-time')}
+                >
+                  Test
+                </Button>
+                */}
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Navbar() {
