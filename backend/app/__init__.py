@@ -11,9 +11,9 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
     
     # Session configuration for cookies
-    app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+    app.config['SESSION_COOKIE_SECURE'] = True  # Required for cross-origin cookies over HTTPS
     app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for cross-origin cookies
     app.config['SESSION_COOKIE_DOMAIN'] = None  # Let Flask set this automatically
     
     # Database configuration
