@@ -26,6 +26,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 export default function Vote() {
   const [teams, setTeams] = useState([])
+  const [search, setSearch] = useState("")
   const [selectedTeams, setSelectedTeams] = useState([])
   const [week, setWeek] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -219,10 +220,20 @@ export default function Vote() {
                   <Text fontSize="sm" color="gray.600">
                     Click to add teams to your ballot ({selectedTeams.length}/25)
                   </Text>
+                  <Box mb={2}>
+                    <input
+                      type="text"
+                      placeholder="Search teams..."
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      style={{ width: "100%", padding: "0.5rem", borderRadius: "4px", border: "1px solid #ccc" }}
+                    />
+                  </Box>
                   <Box maxH="600px" overflowY="auto">
                     <VStack spacing={2} align="stretch">
                       {teams
                         .filter(team => !selectedTeams.find(t => t.id === team.id))
+                        .filter(team => team.name.toLowerCase().includes(search.toLowerCase()))
                         .map(team => (
                           <Box
                             key={team.id}
@@ -236,9 +247,9 @@ export default function Vote() {
                           >
                             <Text>{team.name}</Text>
                           </Box>
-        ))}
+                        ))}
                     </VStack>
-      </Box>
+                  </Box>
                 </VStack>
               </CardBody>
             </Card>
