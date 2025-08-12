@@ -35,7 +35,16 @@ def consensus(week):
         func.sum(26 - Vote.rank).label('points')
     ).join(Team).filter(Vote.week == week).group_by(Team.name).order_by(func.sum(26 - Vote.rank).desc()).all()
 
-    return jsonify([{ 'team': r[0], 'points': r[1] } for r in results])
+    # Top 25 teams
+    top_25 = results[:25]
+    # Teams that got votes but not enough to be ranked
+    unranked = results[25:]
+
+    response = {
+        'ranked': [{ 'team': r[0], 'points': r[1] } for r in top_25],
+        'unranked': [{ 'team': r[0], 'points': r[1] } for r in unranked]
+    }
+    return jsonify(response)
 
 @vote_bp.route('/leaderboard/overall', methods=['GET'])
 def overall_leaderboard():
@@ -45,7 +54,14 @@ def overall_leaderboard():
         func.sum(26 - Vote.rank).label('points')
     ).join(Team).group_by(Team.name).order_by(func.sum(26 - Vote.rank).desc()).all()
 
-    return jsonify([{ 'team': r[0], 'points': r[1] } for r in results])
+    top_25 = results[:25]
+    unranked = results[25:]
+
+    response = {
+        'ranked': [{ 'team': r[0], 'points': r[1] } for r in top_25],
+        'unranked': [{ 'team': r[0], 'points': r[1] } for r in unranked]
+    }
+    return jsonify(response)
 
 @vote_bp.route('/my_votes', methods=['GET'])
 def my_votes():

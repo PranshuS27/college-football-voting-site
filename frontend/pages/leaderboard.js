@@ -31,7 +31,9 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 export default function Leaderboard() {
-  const [overallRankings, setOverallRankings] = useState([])
+  const [previousRankings, setPreviousRankings] = useState([])
+  const [rankedTeams, setRankedTeams] = useState([])
+  const [unrankedTeams, setUnrankedTeams] = useState([])
   const [selectedWeek, setSelectedWeek] = useState('all')
   const [loading, setLoading] = useState(true)
   const [availableWeeks, setAvailableWeeks] = useState([])
@@ -44,18 +46,38 @@ export default function Leaderboard() {
   }, [selectedWeek])
 
   const loadRankings = async () => {
+    // Load previous week rankings for arrow indicators
+    let prevWeek = null
+    if (selectedWeek !== 'all') {
+      const weekNum = parseInt(selectedWeek)
+      if (!isNaN(weekNum) && weekNum > 1) {
+        prevWeek = weekNum - 1
+      }
+    }
+    if (prevWeek) {
+      try {
+        const prevResponse = await axios.get(`${API_URL}/api/vote/consensus/${prevWeek}`)
+        setPreviousRankings(prevResponse.data.ranked || [])
+      } catch {
+        setPreviousRankings([])
+      }
+    } else {
+      setPreviousRankings([])
+    }
     setLoading(true)
     try {
+      let response;
       if (selectedWeek === 'all') {
-        const response = await axios.get(`${API_URL}/api/vote/leaderboard/overall`)
-        setOverallRankings(response.data)
+        response = await axios.get(`${API_URL}/api/vote/leaderboard/overall`)
       } else {
-        const response = await axios.get(`${API_URL}/api/vote/consensus/${selectedWeek}`)
-        setOverallRankings(response.data)
+        response = await axios.get(`${API_URL}/api/vote/consensus/${selectedWeek}`)
       }
+      setRankedTeams(response.data.ranked || [])
+      setUnrankedTeams(response.data.unranked || [])
     } catch (error) {
       console.error('Error loading rankings:', error)
-      setOverallRankings([])
+      setRankedTeams([])
+      setUnrankedTeams([])
     } finally {
       setLoading(false)
     }
@@ -141,43 +163,87 @@ export default function Leaderboard() {
                         </Tr>
                       </Thead>
                       <Tbody>
-                        {overallRankings.slice(0, 25).map((team, index) => (
-                          <Tr key={team.team}>
-                            <Td>
-                              <Badge 
-                                colorScheme={getRankingColor(index + 1)}
-                                variant="solid"
-                                fontSize="sm"
-                                px={2}
-                                py={1}
-                              >
-                                {index + 1}
-                              </Badge>
-                            </Td>
-                            <Td>
-                              <Text fontWeight={index < 10 ? 'bold' : 'normal'}>
-                                {team.team}
-                              </Text>
-                            </Td>
-                            <Td isNumeric>
-                              <Text fontWeight="bold">
-                                {formatPoints(team.points)}
-                              </Text>
-                            </Td>
-                            <Td>
-                              {index < 5 && <Badge colorScheme="green">Top 5</Badge>}
-                              {index >= 5 && index < 10 && <Badge colorScheme="blue">Top 10</Badge>}
-                              {index >= 10 && index < 15 && <Badge colorScheme="orange">Top 15</Badge>}
-                              {index >= 15 && index < 20 && <Badge colorScheme="red">Top 20</Badge>}
-                              {index >= 20 && <Badge colorScheme="gray">Top 25</Badge>}
-                            </Td>
-                          </Tr>
-                        ))}
+                        {rankedTeams.map((team, index) => {
+                          // Find previous rank
+                          let arrow = null
+                          if (previousRankings.length > 0) {
+                            const prevIndex = previousRankings.findIndex(t => t.team === team.team)
+                            if (prevIndex === -1) {
+                              arrow = <span title="New this week" style={{color: 'green'}}>↑</span>
+                            } else if (prevIndex > index) {
+                              arrow = <span title="Moved up" style={{color: 'green'}}>↑</span>
+                            } else if (prevIndex < index) {
+                              arrow = <span title="Moved down" style={{color: 'red'}}>↓</span>
+                            } else {
+                              arrow = <span title="No change" style={{color: 'gray'}}>→</span>
+                            }
+                          }
+                          return (
+                            <Tr key={team.team}>
+                              <Td>
+                                <Badge 
+                                  colorScheme={getRankingColor(index + 1)}
+                                  variant="solid"
+                                  fontSize="sm"
+                                  px={2}
+                                  py={1}
+                                >
+                                  {index + 1}
+                                </Badge>
+                              </Td>
+                              <Td>
+                                <Text fontWeight={index < 10 ? 'bold' : 'normal'}>
+                                  {team.team} {arrow}
+                                </Text>
+                              </Td>
+                              <Td isNumeric>
+                                <Text fontWeight="bold">
+                                  {formatPoints(team.points)}
+                                </Text>
+                              </Td>
+                              <Td>
+                                {index < 5 && <Badge colorScheme="green">Top 5</Badge>}
+                                {index >= 5 && index < 10 && <Badge colorScheme="blue">Top 10</Badge>}
+                                {index >= 10 && index < 15 && <Badge colorScheme="orange">Top 15</Badge>}
+                                {index >= 15 && index < 20 && <Badge colorScheme="red">Top 20</Badge>}
+                                {index >= 20 && <Badge colorScheme="gray">Top 25</Badge>}
+                              </Td>
+                            </Tr>
+                          )
+                        })}
                       </Tbody>
                     </Table>
                   </Box>
                 </CardBody>
               </Card>
+              {/* Unranked Teams Table */}
+              {unrankedTeams.length > 0 && (
+                <Card bg={cardBg} border="1px" borderColor={borderColor} mt={8}>
+                  <CardHeader>
+                    <Heading size="sm">Teams That Got Votes (Not Ranked)</Heading>
+                  </CardHeader>
+                  <CardBody>
+                    <Box overflowX="auto">
+                      <Table variant="simple">
+                        <Thead>
+                          <Tr>
+                            <Th>Team</Th>
+                            <Th isNumeric>Votes</Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {unrankedTeams.map(team => (
+                            <Tr key={team.team}>
+                              <Td>{team.team}</Td>
+                              <Td isNumeric>{formatPoints(team.points)}</Td>
+                            </Tr>
+                          ))}
+                        </Tbody>
+                      </Table>
+                    </Box>
+                  </CardBody>
+                </Card>
+              )}
             </Box>
 
             {/* Stats Panel */}
@@ -191,16 +257,16 @@ export default function Leaderboard() {
                     <Stat>
                       <StatLabel>Total Teams</StatLabel>
                       <StatNumber>{overallRankings.length}</StatNumber>
-                      <StatHelpText>Ranked this period</StatHelpText>
+                      <StatHelpText>Teams that received votes</StatHelpText>
                     </Stat>
 
                     <Stat>
                       <StatLabel>Highest Scoring</StatLabel>
                       <StatNumber fontSize="lg">
-                        {overallRankings[0]?.team || 'N/A'}
+                        {rankedTeams[0]?.team || 'N/A'}
                       </StatNumber>
                       <StatHelpText>
-                        {formatPoints(overallRankings[0]?.points || 0)} points
+                        {formatPoints(rankedTeams[0]?.points || 0)} points
                       </StatHelpText>
                     </Stat>
 
