@@ -256,7 +256,7 @@ export default function Leaderboard() {
                   <VStack spacing={6} align="stretch">
                     <Stat>
                       <StatLabel>Total Teams</StatLabel>
-                      <StatNumber>{overallRankings.length}</StatNumber>
+                      <StatNumber>{rankedTeams.length + unrankedTeams.length}</StatNumber>
                       <StatHelpText>Teams that received votes</StatHelpText>
                     </Stat>
 
