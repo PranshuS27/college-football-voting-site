@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { conferences } from '../data/conferences'
 import axios from 'axios'
 import { 
   Box, 
@@ -31,12 +32,16 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 export default function Leaderboard() {
+  const [weekStats, setWeekStats] = useState([])
   const [previousRankings, setPreviousRankings] = useState([])
   const [rankedTeams, setRankedTeams] = useState([])
   const [unrankedTeams, setUnrankedTeams] = useState([])
   const [selectedWeek, setSelectedWeek] = useState('all')
   const [loading, setLoading] = useState(true)
   const [availableWeeks, setAvailableWeeks] = useState([])
+  // Conference champion picker state
+  const [championTab, setChampionTab] = useState(false)
+  const [championSelections, setChampionSelections] = useState({})
 
   const cardBg = useColorModeValue('white', 'gray.700')
   const borderColor = useColorModeValue('gray.200', 'gray.600')
@@ -88,6 +93,7 @@ export default function Leaderboard() {
       const response = await axios.get(`${API_URL}/api/vote/test/stats`)
       const weeks = response.data.weeks.map(w => w.week)
       setAvailableWeeks(weeks)
+      setWeekStats(response.data.weeks)
     } catch (error) {
       console.error('Error loading weeks:', error)
     }
@@ -124,19 +130,56 @@ export default function Leaderboard() {
           </Text>
         </Box>
 
-        <Select 
-          value={selectedWeek} 
-          onChange={(e) => setSelectedWeek(e.target.value)}
-          maxW="300px"
-          size="lg"
-        >
-          <option value="all">All Weeks Combined</option>
-          {availableWeeks.map(week => (
-            <option key={week} value={week}>Week {week}</option>
-          ))}
-        </Select>
+        <HStack spacing={4}>
+          <Select 
+            value={selectedWeek} 
+            onChange={(e) => setSelectedWeek(e.target.value)}
+            maxW="300px"
+            size="lg"
+          >
+            <option value="all">All Weeks Combined</option>
+            {availableWeeks.map(week => (
+              <option key={week} value={week}>Week {week}</option>
+            ))}
+          </Select>
+          <button
+            style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ccc', background: championTab ? '#3182ce' : '#e2e8f0', color: championTab ? 'white' : 'black', fontWeight: 'bold' }}
+            onClick={() => setChampionTab(!championTab)}
+          >
+            Conference Champions
+          </button>
+        </HStack>
 
-        {loading ? (
+        {championTab ? (
+          <Box w="full" maxW="700px" bg={cardBg} border="1px" borderColor={borderColor} p={6} borderRadius="lg">
+            <Heading size="md" mb={4}>Pick Conference Champions</Heading>
+            <VStack align="stretch" spacing={4}>
+              {conferences.map(conf => (
+                <HStack key={conf.name} spacing={4}>
+                  <Text minW="160px" fontWeight="bold">{conf.name}</Text>
+                  <Select
+                    value={championSelections[conf.name] || ''}
+                    onChange={e => setChampionSelections({ ...championSelections, [conf.name]: e.target.value })}
+                    placeholder={`Select champion`}
+                    maxW="300px"
+                  >
+                    {conf.teams.map(team => (
+                      <option key={team} value={team}>{team}</option>
+                    ))}
+                  </Select>
+                </HStack>
+              ))}
+            </VStack>
+            <Box mt={6}>
+              <Heading size="sm" mb={2}>Copy-Paste List</Heading>
+              <Box bg="#f7fafc" borderRadius="md" p={3} fontSize="sm" border="1px solid #e2e8f0">
+                <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 }}>
+                  {conferences.map(conf => `${conf.name}: ${championSelections[conf.name] || ''}`).join('\n')}
+                </pre>
+              </Box>
+            </Box>
+          </Box>
+        ) : loading ? (
           <Center py={12}>
             <VStack spacing={4}>
               <Spinner size="xl" color="brand.500" />
@@ -254,6 +297,14 @@ export default function Leaderboard() {
                 </CardHeader>
                 <CardBody>
                   <VStack spacing={6} align="stretch">
+                    <Stat>
+                      <StatLabel>Voters Per Week</StatLabel>
+                      <Box>
+                        {weekStats.map(w => (
+                          <Text key={w.week} fontSize="sm">Week {w.week}: {w.voters} voters</Text>
+                        ))}
+                      </Box>
+                    </Stat>
                     <Stat>
                       <StatLabel>Total Teams</StatLabel>
                       <StatNumber>{rankedTeams.length + unrankedTeams.length}</StatNumber>
