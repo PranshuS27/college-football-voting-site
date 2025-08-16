@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { conferences } from '../data/conferences'
+import { submitConferenceChampions, getConsensusConferenceChampions } from '../utils/conferenceChampionsApi'
 import axios from 'axios'
 import { 
   Box, 
@@ -42,6 +43,29 @@ export default function Leaderboard() {
   // Conference champion picker state
   const [championTab, setChampionTab] = useState(false)
   const [championSelections, setChampionSelections] = useState({})
+  const [championSubmitting, setChampionSubmitting] = useState(false)
+  const [championMessage, setChampionMessage] = useState('')
+  const [consensusTab, setConsensusTab] = useState(false)
+  const [consensusChampions, setConsensusChampions] = useState({})
+  const handleSubmitChampions = async () => {
+    setChampionSubmitting(true)
+    setChampionMessage('')
+    try {
+      await submitConferenceChampions(championSelections)
+      setChampionMessage('Your conference champion votes have been submitted!')
+    } catch (e) {
+      setChampionMessage('Error submitting votes')
+    } finally {
+      setChampionSubmitting(false)
+    }
+  }
+
+  const loadConsensusChampions = async () => {
+    try {
+      const res = await getConsensusConferenceChampions()
+      setConsensusChampions(res.data.consensus || {})
+    } catch {}
+  }
 
   const cardBg = useColorModeValue('white', 'gray.700')
   const borderColor = useColorModeValue('gray.200', 'gray.600')
@@ -144,9 +168,15 @@ export default function Leaderboard() {
           </Select>
           <button
             style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ccc', background: championTab ? '#3182ce' : '#e2e8f0', color: championTab ? 'white' : 'black', fontWeight: 'bold' }}
-            onClick={() => setChampionTab(!championTab)}
+            onClick={() => { setChampionTab(!championTab); setConsensusTab(false); }}
           >
-            Conference Champions
+            Vote Conference Champions
+          </button>
+          <button
+            style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ccc', background: consensusTab ? '#3182ce' : '#e2e8f0', color: consensusTab ? 'white' : 'black', fontWeight: 'bold' }}
+            onClick={() => { setConsensusTab(!consensusTab); setChampionTab(false); if (!consensusTab) loadConsensusChampions(); }}
+          >
+            Consensus Champions
           </button>
         </HStack>
 
@@ -171,6 +201,20 @@ export default function Leaderboard() {
               ))}
             </VStack>
             <Box mt={6}>
+              <Button
+                colorScheme="blue"
+                size="lg"
+                onClick={handleSubmitChampions}
+                isLoading={championSubmitting}
+                isDisabled={Object.keys(championSelections).length !== conferences.length}
+              >
+                Submit Conference Champion Votes
+              </Button>
+              {championMessage && (
+                <Text mt={2} color="green.600">{championMessage}</Text>
+              )}
+            </Box>
+            <Box mt={6}>
               <Heading size="sm" mb={2}>Copy-Paste List</Heading>
               <Box bg="#f7fafc" borderRadius="md" p={3} fontSize="sm" border="1px solid #e2e8f0">
                 <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 }}>
@@ -178,6 +222,23 @@ export default function Leaderboard() {
                 </pre>
               </Box>
             </Box>
+          </Box>
+        ) : consensusTab ? (
+          <Box w="full" maxW="700px" bg={cardBg} border="1px" borderColor={borderColor} p={6} borderRadius="lg">
+            <Heading size="md" mb={4}>Consensus Conference Champions</Heading>
+            <VStack align="stretch" spacing={4}>
+              {conferences.map(conf => (
+                <HStack key={conf.name} spacing={4}>
+                  <Text minW="160px" fontWeight="bold">{conf.name}</Text>
+                  <Text fontWeight="bold" color="blue.600">
+                    {consensusChampions[conf.name]?.team || 'No votes yet'}
+                  </Text>
+                  <Text color="gray.500" fontSize="sm">
+                    {consensusChampions[conf.name]?.votes ? `${consensusChampions[conf.name].votes} votes` : ''}
+                  </Text>
+                </HStack>
+              ))}
+            </VStack>
           </Box>
         ) : loading ? (
           <Center py={12}>

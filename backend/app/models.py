@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import UniqueConstraint
 
 db = SQLAlchemy()
 
@@ -14,6 +15,14 @@ class User(db.Model, UserMixin):
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+class ConferenceChampionVote(db.Model):
+    __tablename__ = 'conference_champion_votes'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    conference = db.Column(db.String, nullable=False)
+    team = db.Column(db.String, nullable=False)
+    __table_args__ = (UniqueConstraint('user_id', 'conference', name='unique_user_conference'),)
 
 class Team(db.Model):
     id = db.Column(db.Integer, primary_key=True)

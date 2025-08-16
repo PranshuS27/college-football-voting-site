@@ -28,6 +28,37 @@ def submit_vote():
     db.session.commit()
     return jsonify({'message': 'Vote submitted'})
 
+@vote_bp.route('/submit_conference_champions', methods=['POST'])
+def submit_conference_champions():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    data = request.json
+    selections = data.get('champions', {})
+    # Remove previous votes for this user
+    from .models import ConferenceChampionVote
+    ConferenceChampionVote.query.filter_by(user_id=session['user_id']).delete()
+    for conference, team in selections.items():
+        db.session.add(ConferenceChampionVote(user_id=session['user_id'], conference=conference, team=team))
+    db.session.commit()
+    return jsonify({'message': 'Conference champion votes submitted'})
+
+@vote_bp.route('/consensus_conference_champions', methods=['GET'])
+def consensus_conference_champions():
+    from .models import ConferenceChampionVote
+    from sqlalchemy import func
+    results = db.session.query(
+        ConferenceChampionVote.conference,
+        ConferenceChampionVote.team,
+        func.count(ConferenceChampionVote.team).label('votes')
+    ).group_by(ConferenceChampionVote.conference, ConferenceChampionVote.team).all()
+    # Find consensus (most voted team per conference)
+    consensus = {}
+    for conf in set(r[0] for r in results):
+        conf_teams = [r for r in results if r[0] == conf]
+        winner = max(conf_teams, key=lambda x: x[2]) if conf_teams else None
+        if winner:
+            consensus[conf] = {'team': winner[1], 'votes': winner[2]}
+    return jsonify({'consensus': consensus, 'raw': [{'conference': r[0], 'team': r[1], 'votes': r[2]} for r in results]})
 @vote_bp.route('/consensus/<int:week>', methods=['GET'])
 def consensus(week):
     results = db.session.query(
