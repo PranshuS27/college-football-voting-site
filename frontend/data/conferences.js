@@ -20,11 +20,11 @@ export const conferences = [
   },
   {
     name: "Pac-12",
-    teams: ["Oregon State", "Washington State"]
+    teams: ["Boise State", "Colorado State", "Fresno State", "Oregon State", "San Diego State", "Texas State", "Utah State", "Washington State"]
   },
   {
     name: "American Athletic Conference",
-    teams: ["Charlotte", "East Carolina", "Florida Atlantic", "Memphis", "Navy", "North Texas", "Rice", "South Florida", "Temple", "Tulane", "Tulsa", "UAB"]
+    teams: ["Army", "Charlotte", "East Carolina", "Florida Atlantic", "Memphis", "Navy", "North Texas", "Rice", "South Florida", "Temple", "Tulane", "Tulsa", "UAB", "UTSA"]
   },
   {
     name: "Conference USA",
@@ -32,14 +32,14 @@ export const conferences = [
   },
   {
     name: "MAC",
-    teams: ["Akron", "Ball State", "Bowling Green", "Buffalo", "Central Michigan", "Eastern Michigan", "Kent State", "Miami (OH)", "Northern Illinois", "Ohio", "Toledo", "UMass", "Western Michigan"]
+    teams: ["Akron", "Ball State", "Bowling Green", "Buffalo", "Central Michigan", "Eastern Michigan", "Kent State", "Miami (OH)", "Northern Illinois", "Ohio", "Sacramento State", "Toledo", "UMass", "Western Michigan"]
   },
   {
     name: "Mountain West",
-    teams: ["Air Force", "Boise State", "Colorado State", "Fresno State", "Hawai'i", "Nevada", "New Mexico", "San Diego State", "San Jose State", "UNLV", "Utah State", "Wyoming"]
+    teams: ["Air Force", "Hawai'i", "Nevada", "New Mexico", "North Dakota State", "San Jose State", "UNLV", "Wyoming"]
   },
   {
     name: "Sun Belt",
-    teams: ["Appalachian State", "Arkansas State", "Coastal Carolina", "Georgia Southern", "Georgia State", "James Madison", "Louisiana", "Louisiana-Monroe", "Marshall", "Old Dominion", "South Alabama", "Southern Miss", "Texas State", "Troy"]
+    teams: ["Appalachian State", "Arkansas State", "Coastal Carolina", "Georgia Southern", "Georgia State", "James Madison", "Louisiana", "Louisiana-Monroe", "Marshall", "Old Dominion", "South Alabama", "Southern Miss", "Troy"]
   }
 ];
