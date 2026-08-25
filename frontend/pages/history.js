@@ -86,19 +86,20 @@ export default function History() {
           <VStack spacing={6} w="full">
             {Object.entries(voteHistory)
               .sort(([a], [b]) => parseInt(b) - parseInt(a))
-              .map(([week, teams]) => (
+              .map(([week, ballot]) => (
                 <Card key={week} bg={cardBg} border="1px" borderColor={borderColor} w="full">
                   <CardHeader>
                     <HStack justify="space-between">
                       <Heading size="md">Week {week}</Heading>
                       <Badge colorScheme="blue" variant="solid">
-                        {teams.length} teams
+                        {ballot.ranked.length} ranked
+                        {ballot.considered?.length > 0 && `, ${ballot.considered.length} considered`}
                       </Badge>
                     </HStack>
                   </CardHeader>
                   <CardBody pt={0}>
                     <VStack spacing={2} align="stretch">
-                      {teams.map((team, index) => (
+                      {ballot.ranked.map((team, index) => (
                         <HStack key={index} justify="space-between" p={2} bg="gray.50" borderRadius="md">
                           <HStack>
                             <Badge colorScheme="green" variant="solid" minW="30px">
@@ -108,6 +109,21 @@ export default function History() {
                           </HStack>
                         </HStack>
                       ))}
+                      {ballot.considered?.length > 0 && (
+                        <>
+                          <Text fontSize="sm" fontWeight="semibold" color="gray.600" pt={2}>
+                            Considered (0 pts)
+                          </Text>
+                          {ballot.considered.map((team, index) => (
+                            <HStack key={`c-${index}`} justify="space-between" p={2} bg="gray.50" borderRadius="md">
+                              <HStack>
+                                <Badge colorScheme="gray" variant="solid" minW="30px">—</Badge>
+                                <Text>{team}</Text>
+                              </HStack>
+                            </HStack>
+                          ))}
+                        </>
+                      )}
                     </VStack>
                   </CardBody>
                 </Card>

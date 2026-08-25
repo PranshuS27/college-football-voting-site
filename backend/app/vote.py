@@ -17,6 +17,11 @@ def submit_vote():
     data = request.json
     week = data['week']
     team_names = data['rankings']
+    considered_names = data.get('considered', [])
+
+    overlap = set(team_names) & set(considered_names)
+    if overlap:
+        return jsonify({'error': f'Teams cannot appear in both rankings and considered: {", ".join(sorted(overlap))}'}), 400
 
     Vote.query.filter_by(user_id=session['user_id'], week=week).delete()
 
@@ -24,6 +29,11 @@ def submit_vote():
         team = Team.query.filter_by(name=team_name).first()
         if team:
             db.session.add(Vote(user_id=session['user_id'], week=week, team_id=team.id, rank=rank))
+
+    for team_name in considered_names:
+        team = Team.query.filter_by(name=team_name).first()
+        if team:
+            db.session.add(Vote(user_id=session['user_id'], week=week, team_id=team.id, rank=0))
 
     db.session.commit()
     return jsonify({'message': 'Vote submitted'})
@@ -64,7 +74,7 @@ def consensus(week):
     results = db.session.query(
         Team.name,
         func.sum(26 - Vote.rank).label('points')
-    ).join(Team).filter(Vote.week == week).group_by(Team.name).order_by(func.sum(26 - Vote.rank).desc()).all()
+    ).join(Team).filter(Vote.week == week, Vote.rank > 0).group_by(Team.name).order_by(func.sum(26 - Vote.rank).desc()).all()
 
     # Top 25 teams
     top_25 = results[:25]
@@ -83,7 +93,7 @@ def overall_leaderboard():
     results = db.session.query(
         Team.name,
         func.sum(26 - Vote.rank).label('points')
-    ).join(Team).group_by(Team.name).order_by(func.sum(26 - Vote.rank).desc()).all()
+    ).join(Team).filter(Vote.rank > 0).group_by(Team.name).order_by(func.sum(26 - Vote.rank).desc()).all()
 
     top_25 = results[:25]
     unranked = results[25:]
@@ -101,8 +111,18 @@ def my_votes():
     votes = db.session.query(Vote.week, Team.name, Vote.rank).join(Team).filter(Vote.user_id == session['user_id']).all()
     vote_history = {}
     for week, team, rank in votes:
-        vote_history.setdefault(week, []).append((rank, team))
-    return jsonify({week: [t for _, t in sorted(rankings)] for week, rankings in vote_history.items()})
+        vote_history.setdefault(week, {'ranked': [], 'considered': []})
+        if rank == 0:
+            vote_history[week]['considered'].append(team)
+        else:
+            vote_history[week]['ranked'].append((rank, team))
+    return jsonify({
+        week: {
+            'ranked': [t for _, t in sorted(data['ranked'])],
+            'considered': data['considered'],
+        }
+        for week, data in vote_history.items()
+    })
 
 @vote_bp.route('/test/votes/<int:week>', methods=['GET'])
 def test_votes(week):

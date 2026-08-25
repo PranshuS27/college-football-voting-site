@@ -28,6 +28,8 @@ export default function Vote() {
   const [teams, setTeams] = useState([])
   const [search, setSearch] = useState("")
   const [selectedTeams, setSelectedTeams] = useState([])
+  const [consideredTeams, setConsideredTeams] = useState([])
+  const [addMode, setAddMode] = useState('ranked')
   const [week, setWeek] = useState(1)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -65,17 +67,29 @@ export default function Vote() {
   }
 
   const addTeam = (team) => {
-    if (selectedTeams.length >= 25) return
-    if (selectedTeams.find(t => t.id === team.id)) return
-    setSelectedTeams([...selectedTeams, team])
+    if (addMode === 'ranked') {
+      if (selectedTeams.length >= 25) return
+      if (selectedTeams.find(t => t.id === team.id)) return
+      setSelectedTeams([...selectedTeams, team])
+    } else {
+      if (consideredTeams.find(t => t.id === team.id)) return
+      setConsideredTeams([...consideredTeams, team])
+    }
   }
 
   const removeTeam = (teamId) => {
     setSelectedTeams(selectedTeams.filter(t => t.id !== teamId))
   }
 
+  const removeConsideredTeam = (teamId) => {
+    setConsideredTeams(consideredTeams.filter(t => t.id !== teamId))
+  }
+
+  const isTeamUnavailable = (teamId) =>
+    selectedTeams.some(t => t.id === teamId) || consideredTeams.some(t => t.id === teamId)
+
   const copyBallotToClipboard = async () => {
-    if (selectedTeams.length === 0) {
+    if (selectedTeams.length === 0 && consideredTeams.length === 0) {
       toast({
         title: "No ballot to copy",
         description: "Please add teams to your ballot first",
@@ -132,6 +146,13 @@ export default function Vote() {
     if (selectedTeams.length < 25) {
       ballotText += ` (${25 - selectedTeams.length} more needed)`
     }
+
+    if (consideredTeams.length > 0) {
+      ballotText += `\n\nTeams Considered (0 pts):\n`
+      consideredTeams.forEach((team) => {
+        ballotText += `- ${team.name}\n`
+      })
+    }
     
     return ballotText
   }
@@ -149,11 +170,13 @@ export default function Vote() {
     try {
       await axios.post(`${API_URL}/api/vote/submit_vote`, {
         week: week,
-        rankings: selectedTeams.map(t => t.name)
+        rankings: selectedTeams.map(t => t.name),
+        considered: consideredTeams.map(t => t.name),
       }, { withCredentials: true })
 
       setMessage('Vote submitted successfully!')
       setSelectedTeams([])
+      setConsideredTeams([])
     } catch (error) {
       setError(error.response?.data?.error || 'Failed to submit vote')
     } finally {
@@ -180,7 +203,7 @@ export default function Vote() {
             Submit Your Vote
           </Heading>
           <Text fontSize="lg" color="gray.600">
-            Drag and drop teams to create your Top 25 rankings
+            Drag and drop teams to create your Top 25 rankings, and optionally list teams you considered
           </Text>
         </Box>
 
@@ -217,8 +240,20 @@ export default function Vote() {
               <CardBody>
                 <VStack spacing={4} align="stretch">
                   <Heading size="md">Available Teams</Heading>
+                  <HStack spacing={2}>
+                    <Text fontSize="sm" color="gray.600">Add to:</Text>
+                    <Select
+                      size="sm"
+                      value={addMode}
+                      onChange={(e) => setAddMode(e.target.value)}
+                      maxW="180px"
+                    >
+                      <option value="ranked">Top 25</option>
+                      <option value="considered">Considered (0 pts)</option>
+                    </Select>
+                  </HStack>
                   <Text fontSize="sm" color="gray.600">
-                    Click to add teams to your ballot ({selectedTeams.length}/25)
+                    Click to add teams ({selectedTeams.length}/25 ranked, {consideredTeams.length} considered)
                   </Text>
                   <Box mb={2}>
                     <input
@@ -232,7 +267,7 @@ export default function Vote() {
                   <Box maxH="600px" overflowY="auto">
                     <VStack spacing={2} align="stretch">
                       {teams
-                        .filter(team => !selectedTeams.find(t => t.id === team.id))
+                        .filter(team => !isTeamUnavailable(team.id))
                         .filter(team => team.name.toLowerCase().includes(search.toLowerCase()))
                         .map(team => (
                           <Box
@@ -258,18 +293,7 @@ export default function Vote() {
             <Card bg={cardBg} border="1px" borderColor={borderColor} flex={1}>
               <CardBody>
                 <VStack spacing={4} align="stretch">
-                  <HStack justify="space-between">
-                    <Heading size="md">Your Top 25</Heading>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      colorScheme="blue"
-                      onClick={copyBallotToClipboard}
-                      isDisabled={selectedTeams.length === 0}
-                    >
-                      Copy Ballot
-                    </Button>
-                  </HStack>
+                  <Heading size="md">Your Top 25</Heading>
                   <Text fontSize="sm" color="gray.600">
                     Drag to reorder, click to remove
                   </Text>
@@ -326,19 +350,80 @@ export default function Vote() {
                 </VStack>
               </CardBody>
             </Card>
+
+            {/* Considered Teams */}
+            <Card bg={cardBg} border="1px" borderColor={borderColor} flex={1}>
+              <CardBody>
+                <VStack spacing={4} align="stretch">
+                  <Heading size="md">Considered (0 pts)</Heading>
+                  <Text fontSize="sm" color="gray.600">
+                    Teams you thought about but didn&apos;t rank — click to remove
+                  </Text>
+                  <Box
+                    minH="400px"
+                    border="2px dashed"
+                    borderColor={consideredTeams.length === 0 ? 'gray.300' : 'transparent'}
+                    borderRadius="md"
+                    p={2}
+                  >
+                    {consideredTeams.length === 0 ? (
+                      <Text fontSize="sm" color="gray.400" textAlign="center" pt={8}>
+                        Use &quot;Considered (0 pts)&quot; in the team picker to add teams here
+                      </Text>
+                    ) : (
+                      consideredTeams.map((team) => (
+                        <Box
+                          key={team.id}
+                          p={3}
+                          mb={2}
+                          bg={cardBg}
+                          border="1px"
+                          borderColor={borderColor}
+                          borderRadius="md"
+                          cursor="pointer"
+                          _hover={{ bg: 'red.50' }}
+                          onClick={() => removeConsideredTeam(team.id)}
+                        >
+                          <HStack justify="space-between">
+                            <HStack>
+                              <Badge colorScheme="gray" variant="solid">—</Badge>
+                              <Text>{team.name}</Text>
+                            </HStack>
+                            <Text fontSize="sm" color="gray.500">
+                              Click to remove
+                            </Text>
+                          </HStack>
+                        </Box>
+                      ))
+                    )}
+                  </Box>
+                </VStack>
+              </CardBody>
+            </Card>
           </HStack>
         </Box>
 
         <VStack spacing={4}>
-          <Button
-            colorScheme="brand"
-            size="lg"
-            onClick={submitVote}
-            isLoading={submitting}
-            isDisabled={selectedTeams.length !== 25}
-          >
-            Submit Vote for Week {week}
-        </Button>
+          <HStack spacing={4}>
+            <Button
+              colorScheme="brand"
+              size="lg"
+              onClick={submitVote}
+              isLoading={submitting}
+              isDisabled={selectedTeams.length !== 25}
+            >
+              Submit Vote for Week {week}
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              colorScheme="blue"
+              onClick={copyBallotToClipboard}
+              isDisabled={selectedTeams.length === 0 && consideredTeams.length === 0}
+            >
+              Copy Ballot
+            </Button>
+          </HStack>
 
           {selectedTeams.length > 0 && selectedTeams.length < 25 && (
             <Text fontSize="sm" color="gray.600">
