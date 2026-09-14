@@ -11,7 +11,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     await logout()
-    router.push('/')
+    router.push('/login')
   }
 
   const isActivePage = (path) => {
@@ -88,26 +88,7 @@ export default function Navbar() {
                   Logout
                 </Button>
               </>
-            ) : (
-              <>
-                <Button 
-                  variant="ghost"
-                  colorScheme="brand"
-                  size="sm"
-                  onClick={() => router.push('/login')}
-                >
-                  Login
-                </Button>
-                <Button 
-                  variant="outline"
-                  colorScheme="brand"
-                  size="sm"
-                  onClick={() => router.push('/register')}
-                >
-                  Register
-                </Button>
-              </>
-            )}
+            ) : null}
           </Flex>
         </Flex>
       </Container>

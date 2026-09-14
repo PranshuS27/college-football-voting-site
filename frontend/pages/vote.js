@@ -24,13 +24,17 @@ import axios from 'axios'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
+const WEEKS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+
 export default function Vote() {
   const [teams, setTeams] = useState([])
   const [search, setSearch] = useState("")
   const [selectedTeams, setSelectedTeams] = useState([])
   const [consideredTeams, setConsideredTeams] = useState([])
   const [addMode, setAddMode] = useState('ranked')
-  const [week, setWeek] = useState(1)
+  const [week, setWeek] = useState(null)
+  const [pendingWeek, setPendingWeek] = useState('')
+  const [ballotStarted, setBallotStarted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState('')
@@ -54,6 +58,26 @@ export default function Vote() {
       setError('Failed to load teams')
       setLoading(false)
     }
+  }
+
+  const startBallot = () => {
+    if (!pendingWeek) {
+      setError('Please select a week before starting your ballot')
+      return
+    }
+    setError('')
+    setMessage('')
+    setWeek(parseInt(pendingWeek, 10))
+    setSelectedTeams([])
+    setConsideredTeams([])
+    setBallotStarted(true)
+  }
+
+  const changeWeek = () => {
+    setPendingWeek(week ? String(week) : '')
+    setBallotStarted(false)
+    setMessage('')
+    setError('')
   }
 
   const handleDragEnd = (result) => {
@@ -195,6 +219,67 @@ export default function Vote() {
     )
   }
 
+  if (!ballotStarted) {
+    return (
+      <Container maxW="container.md" py={12}>
+        <VStack spacing={8}>
+          <Box textAlign="center">
+            <Heading size="2xl" mb={2}>
+              Pick a Week
+            </Heading>
+            <Text fontSize="lg" color="gray.600">
+              Choose which week you&apos;re voting for before starting your ballot
+            </Text>
+          </Box>
+
+          {error && (
+            <Alert status="error" w="full">
+              <AlertIcon />
+              {error}
+            </Alert>
+          )}
+
+          <Card bg={cardBg} border="1px" borderColor={borderColor} w="full" shadow="md">
+            <CardBody p={{ base: 6, md: 8 }}>
+              <VStack spacing={6} align="stretch">
+                <Box>
+                  <Text fontWeight="medium" mb={2}>
+                    Voting week
+                  </Text>
+                  <Select
+                    size="lg"
+                    placeholder="Select a week"
+                    value={pendingWeek}
+                    onChange={(e) => {
+                      setPendingWeek(e.target.value)
+                      setError('')
+                    }}
+                  >
+                    {WEEKS.map((w) => (
+                      <option key={w} value={w}>
+                        Week {w}
+                      </option>
+                    ))}
+                  </Select>
+                </Box>
+
+                <Button
+                  colorScheme="brand"
+                  size="lg"
+                  h="14"
+                  onClick={startBallot}
+                  isDisabled={!pendingWeek}
+                >
+                  Start Ballot{pendingWeek ? ` for Week ${pendingWeek}` : ''}
+                </Button>
+              </VStack>
+            </CardBody>
+          </Card>
+        </VStack>
+      </Container>
+    )
+  }
+
   return (
     <Container maxW="container.xl" py={8}>
       <VStack spacing={8}>
@@ -207,16 +292,13 @@ export default function Vote() {
           </Text>
         </Box>
 
-        <HStack spacing={4} align="start">
-          <Select 
-            value={week} 
-            onChange={(e) => setWeek(parseInt(e.target.value))}
-            maxW="200px"
-          >
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17].map(w => (
-              <option key={w} value={w}>Week {w}</option>
-            ))}
-          </Select>
+        <HStack spacing={4} align="center">
+          <Badge colorScheme="brand" fontSize="md" px={3} py={1}>
+            Week {week}
+          </Badge>
+          <Button size="sm" variant="outline" onClick={changeWeek}>
+            Change week
+          </Button>
         </HStack>
 
         {error && (

@@ -10,11 +10,12 @@ def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
     
-    # Session configuration for cookies
-    app.config['SESSION_COOKIE_SECURE'] = True  # Required for cross-origin cookies over HTTPS
+    # Session cookies: Secure+None for HTTPS/cross-origin prod; Lax for local HTTP
+    cookie_secure = os.environ.get('COOKIE_SECURE', 'false').lower() == 'true'
+    app.config['SESSION_COOKIE_SECURE'] = cookie_secure
     app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for cross-origin cookies
-    app.config['SESSION_COOKIE_DOMAIN'] = None  # Let Flask set this automatically
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None' if cookie_secure else 'Lax'
+    app.config['SESSION_COOKIE_DOMAIN'] = None
     
     # Database configuration
     database_url = os.environ.get('DATABASE_URL', 'postgresql://user:password@db:5432/football_votes')

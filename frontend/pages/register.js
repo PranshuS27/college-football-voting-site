@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   Box, 
   Container, 
@@ -15,13 +15,11 @@ import {
   Alert,
   AlertIcon,
   useColorModeValue,
-  useToast
+  useToast,
+  Flex
 } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../contexts/AuthContext'
-import axios from 'axios'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 export default function Register() {
   const [username, setUsername] = useState('')
@@ -30,11 +28,17 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const { login } = useAuth()
+  const { register, isLoggedIn, loading: authLoading } = useAuth()
   const toast = useToast()
 
   const cardBg = useColorModeValue('white', 'gray.700')
   const borderColor = useColorModeValue('gray.200', 'gray.600')
+
+  useEffect(() => {
+    if (!authLoading && isLoggedIn) {
+      router.replace('/vote')
+    }
+  }, [isLoggedIn, authLoading, router])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -48,23 +52,19 @@ export default function Register() {
     setError('')
 
     try {
-      const response = await axios.post(`${API_URL}/api/auth/register`, {
-        username,
-        password
-      }, { withCredentials: true })
-
-      // Update global auth state
-      await login(username)
-      
-      toast({
-        title: "Registration successful!",
-        description: `Welcome to CFB Voting, ${username}!`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      })
-
-      router.push('/vote')
+      const result = await register(username, password)
+      if (result.success) {
+        toast({
+          title: "Registration successful!",
+          description: `Welcome to CFB Voting, ${username}!`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        })
+        router.push('/vote')
+      } else {
+        setError(result.error || 'Registration failed')
+      }
     } catch (error) {
       setError(error.response?.data?.error || 'Registration failed')
     } finally {
@@ -73,86 +73,118 @@ export default function Register() {
   }
 
   return (
-    <Container maxW="container.sm" py={12}>
-      <VStack spacing={8}>
-        <Box textAlign="center">
-          <Heading size="2xl" mb={2}>
-            Create Account
-          </Heading>
-          <Text fontSize="lg" color="gray.600">
-            Join the college football voting community
-          </Text>
-        </Box>
+    <Flex
+      minH="100vh"
+      align="center"
+      justify="center"
+      bgGradient="linear(to-br, brand.900, brand.700, brand.500)"
+      px={4}
+      py={12}
+    >
+      <Container maxW="md">
+        <VStack spacing={8}>
+          <Box textAlign="center" color="white">
+            <Text
+              fontSize="sm"
+              fontWeight="bold"
+              letterSpacing="0.2em"
+              textTransform="uppercase"
+              opacity={0.85}
+              mb={3}
+            >
+              College Football Voting
+            </Text>
+            <Heading size="2xl" mb={3} fontFamily="heading">
+              Create your account
+            </Heading>
+            <Text fontSize="lg" opacity={0.9} maxW="sm" mx="auto">
+              Register to start voting and unlock the rest of the site.
+            </Text>
+          </Box>
 
-        <Card bg={cardBg} border="1px" borderColor={borderColor} w="full">
-          <CardBody>
-            <form onSubmit={handleSubmit}>
-              <VStack spacing={6}>
-                {error && (
-                  <Alert status="error">
-                    <AlertIcon />
-                    {error}
-                  </Alert>
-                )}
+          <Card
+            bg={cardBg}
+            border="1px"
+            borderColor={borderColor}
+            w="full"
+            shadow="2xl"
+            borderRadius="xl"
+          >
+            <CardBody p={{ base: 6, md: 8 }}>
+              <form onSubmit={handleSubmit}>
+                <VStack spacing={6}>
+                  {error && (
+                    <Alert status="error" borderRadius="md">
+                      <AlertIcon />
+                      {error}
+                    </Alert>
+                  )}
 
-                <FormControl isRequired>
-                  <FormLabel>Username</FormLabel>
-                  <Input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Choose a username"
-                  />
-                </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel>Username</FormLabel>
+                    <Input
+                      type="text"
+                      size="lg"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Choose a username"
+                      autoFocus
+                    />
+                  </FormControl>
 
-                <FormControl isRequired>
-                  <FormLabel>Password</FormLabel>
-                  <Input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Create a password"
-                  />
-                </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel>Password</FormLabel>
+                    <Input
+                      type="password"
+                      size="lg"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Create a password"
+                    />
+                  </FormControl>
 
-                <FormControl isRequired>
-                  <FormLabel>Confirm Password</FormLabel>
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your password"
-                  />
-                </FormControl>
+                  <FormControl isRequired>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <Input
+                      type="password"
+                      size="lg"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm your password"
+                    />
+                  </FormControl>
 
-                <Button
-                  type="submit"
-                  colorScheme="brand"
-                  size="lg"
-                  w="full"
-                  isLoading={loading}
-                >
-                  Create Account
-                </Button>
-
-                <HStack spacing={4} w="full">
-                  <Text fontSize="sm" color="gray.600">
-                    Already have an account?
-                  </Text>
                   <Button
-                    variant="link"
+                    type="submit"
                     colorScheme="brand"
-                    size="sm"
-                    onClick={() => router.push('/login')}
+                    size="lg"
+                    w="full"
+                    h="14"
+                    fontSize="lg"
+                    isLoading={loading}
                   >
-                    Login here
+                    Create Account
                   </Button>
-                </HStack>
-              </VStack>
-            </form>
-          </CardBody>
-        </Card>
-      </VStack>
-    </Container>
+
+                  <HStack spacing={2} w="full" justify="center">
+                    <Text fontSize="sm" color="gray.600">
+                      Already have an account?
+                    </Text>
+                    <Button
+                      variant="link"
+                      colorScheme="brand"
+                      size="sm"
+                      onClick={() => router.push('/login')}
+                    >
+                      Login here
+                    </Button>
+                  </HStack>
+                </VStack>
+              </form>
+            </CardBody>
+          </Card>
+        </VStack>
+      </Container>
+    </Flex>
   )
 }

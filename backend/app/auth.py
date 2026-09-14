@@ -12,7 +12,8 @@ def register():
     user.set_password(data['password'])
     db.session.add(user)
     db.session.commit()
-    return jsonify({'message': 'Registered successfully'})
+    session['user_id'] = user.id
+    return jsonify({'username': user.username, 'id': user.id})
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -21,7 +22,7 @@ def login():
     if not user or not user.check_password(data['password']):
         return jsonify({'error': 'Invalid credentials'}), 401
     session['user_id'] = user.id
-    return jsonify({'message': 'Logged in'})
+    return jsonify({'username': user.username, 'id': user.id})
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():

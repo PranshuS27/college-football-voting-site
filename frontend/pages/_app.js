@@ -1,6 +1,6 @@
 import { ChakraProvider, extendTheme } from '@chakra-ui/react'
 import { AuthProvider } from '../contexts/AuthContext'
-import Navbar from '../components/Navbar'
+import AuthGate from '../components/AuthGate'
 
 const theme = extendTheme({
   colors: {
@@ -30,8 +30,9 @@ export default function App({ Component, pageProps }) {
   return (
     <ChakraProvider theme={theme}>
       <AuthProvider>
-        <Navbar />
-        <Component {...pageProps} />
+        <AuthGate>
+          <Component {...pageProps} />
+        </AuthGate>
       </AuthProvider>
     </ChakraProvider>
   )
