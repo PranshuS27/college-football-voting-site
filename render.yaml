@@ -13,6 +13,8 @@ services:
         generateValue: true
       - key: DATABASE_URL
         sync: false
+      - key: COOKIE_SECURE
+        value: "true"
       - key: NEXT_PUBLIC_API_URL
         value: https://college-football-backend.onrender.com
 

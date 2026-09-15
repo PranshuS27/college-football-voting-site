@@ -10,8 +10,14 @@ def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
     
-    # Session cookies: Secure+None for HTTPS/cross-origin prod; Lax for local HTTP
-    cookie_secure = os.environ.get('COOKIE_SECURE', 'false').lower() == 'true'
+    # Cross-origin prod (separate frontend/backend hosts) needs Secure + SameSite=None.
+    # Local Docker sets COOKIE_SECURE=false (or FLASK_ENV=development) for HTTP.
+    cookie_secure_env = os.environ.get('COOKIE_SECURE', '').lower()
+    if cookie_secure_env in ('true', 'false'):
+        cookie_secure = cookie_secure_env == 'true'
+    else:
+        cookie_secure = os.environ.get('FLASK_ENV', '').lower() != 'development'
+
     app.config['SESSION_COOKIE_SECURE'] = cookie_secure
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'None' if cookie_secure else 'Lax'
