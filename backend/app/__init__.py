@@ -36,8 +36,11 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(vote_bp, url_prefix='/api/vote')
     
-    # Create database tables
+    # Create database tables and ensure NFL teams exist
     with app.app_context():
         db.create_all()
-    
+        from .models import NflTeam
+        from ..seed_nfl_teams import seed_nfl_teams
+        seed_nfl_teams(db, NflTeam)
+
     return app

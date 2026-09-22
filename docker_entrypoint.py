@@ -41,6 +41,21 @@ def seed_teams_if_needed(app) -> None:
         print(f"Seeded {Team.query.count()} teams.")
 
 
+def seed_nfl_teams_if_needed(app) -> None:
+    from backend.app.models import NflTeam, db
+    from backend.seed_nfl_teams import seed_nfl_teams
+
+    with app.app_context():
+        existing = NflTeam.query.count()
+        if existing >= 32:
+            print(f"NFL teams already seeded ({existing} teams).")
+            return
+
+        print("Seeding NFL teams...")
+        added = seed_nfl_teams(db, NflTeam)
+        print(f"Seeded {added} NFL teams ({NflTeam.query.count()} total).")
+
+
 def main() -> None:
     database_url = os.environ.get(
         "DATABASE_URL",
@@ -52,6 +67,7 @@ def main() -> None:
     from app import app
 
     seed_teams_if_needed(app)
+    seed_nfl_teams_if_needed(app)
 
     port = int(os.environ.get("PORT", "5000"))
     print(f"Starting Flask on 0.0.0.0:{port}")

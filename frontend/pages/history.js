@@ -10,6 +10,8 @@ import {
   CardHeader,
   Badge,
   HStack,
+  Button,
+  ButtonGroup,
   useColorModeValue,
   Spinner,
   Center,
@@ -21,6 +23,7 @@ import axios from 'axios'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 export default function History() {
+  const [sport, setSport] = useState('cfb')
   const [voteHistory, setVoteHistory] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -29,42 +32,51 @@ export default function History() {
   const borderColor = useColorModeValue('gray.200', 'gray.600')
 
   useEffect(() => {
-    loadVoteHistory()
-  }, [])
-
-  const loadVoteHistory = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/api/vote/my_votes`, { withCredentials: true })
-      setVoteHistory(response.data)
-      setLoading(false)
-    } catch (error) {
-      console.error('Error loading vote history:', error)
-      setError('Failed to load vote history')
-      setLoading(false)
+    let cancelled = false
+    const loadVoteHistory = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const endpoint = sport === 'nfl' ? '/api/vote/nfl/my_votes' : '/api/vote/my_votes'
+        const response = await axios.get(`${API_URL}${endpoint}`, { withCredentials: true })
+        if (!cancelled) setVoteHistory(response.data)
+      } catch (err) {
+        console.error('Error loading vote history:', err)
+        if (!cancelled) {
+          setError('Failed to load vote history')
+          setVoteHistory({})
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
-  }
-
-  if (loading) {
-    return (
-      <Center py={12}>
-        <VStack spacing={4}>
-          <Spinner size="xl" color="brand.500" />
-          <Text>Loading your vote history...</Text>
-        </VStack>
-      </Center>
-    )
-  }
+    loadVoteHistory()
+    return () => { cancelled = true }
+  }, [sport])
 
   return (
     <Container maxW="container.xl" py={8}>
       <VStack spacing={8}>
         <Box textAlign="center">
-          <Heading size="2xl" mb={2}>
-            Your Vote History
+          <Heading size="2xl" mb={4}>
+            Vote History
           </Heading>
-          <Text fontSize="lg" color="gray.600">
-            Review your past ballots and voting activity
-          </Text>
+          <ButtonGroup size="md" isAttached variant="outline">
+            <Button
+              colorScheme="brand"
+              variant={sport === 'cfb' ? 'solid' : 'outline'}
+              onClick={() => setSport('cfb')}
+            >
+              CFB
+            </Button>
+            <Button
+              colorScheme="brand"
+              variant={sport === 'nfl' ? 'solid' : 'outline'}
+              onClick={() => setSport('nfl')}
+            >
+              NFL
+            </Button>
+          </ButtonGroup>
         </Box>
 
         {error && (
@@ -74,11 +86,15 @@ export default function History() {
           </Alert>
         )}
 
-        {Object.keys(voteHistory).length === 0 ? (
+        {loading ? (
+          <Center py={12}>
+            <Spinner size="xl" color="brand.500" />
+          </Center>
+        ) : Object.keys(voteHistory).length === 0 ? (
           <Card bg={cardBg} border="1px" borderColor={borderColor} w="full">
             <CardBody textAlign="center" py={12}>
               <Text fontSize="lg" color="gray.600">
-                No vote history found. Start voting to see your ballots here!
+                No {sport.toUpperCase()} ballots yet.
               </Text>
             </CardBody>
           </Card>
@@ -93,7 +109,8 @@ export default function History() {
                       <Heading size="md">Week {week}</Heading>
                       <Badge colorScheme="blue" variant="solid">
                         {ballot.ranked.length} ranked
-                        {ballot.considered?.length > 0 && `, ${ballot.considered.length} considered`}
+                        {sport === 'cfb' && ballot.considered?.length > 0 &&
+                          `, ${ballot.considered.length} considered`}
                       </Badge>
                     </HStack>
                   </CardHeader>
@@ -109,7 +126,7 @@ export default function History() {
                           </HStack>
                         </HStack>
                       ))}
-                      {ballot.considered?.length > 0 && (
+                      {sport === 'cfb' && ballot.considered?.length > 0 && (
                         <>
                           <Text fontSize="sm" fontWeight="semibold" color="gray.600" pt={2}>
                             Considered (0 pts)

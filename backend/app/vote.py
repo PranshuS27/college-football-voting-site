@@ -1,14 +1,120 @@
 from flask import Blueprint, request, jsonify, session
-from .models import db, Vote, Team, User
+from .models import db, Vote, Team, User, NflTeam, NflVote
 from sqlalchemy import func, and_
 
 vote_bp = Blueprint('vote', __name__)
+
+NFL_TEAM_COUNT = 32
 
 @vote_bp.route('/teams', methods=['GET'])
 def get_teams():
     """Get all available teams"""
     teams = Team.query.order_by(Team.name).all()
     return jsonify([{'id': team.id, 'name': team.name} for team in teams])
+
+@vote_bp.route('/nfl/teams', methods=['GET'])
+def get_nfl_teams():
+    """Get all NFL teams"""
+    teams = NflTeam.query.order_by(NflTeam.name).all()
+    return jsonify([{'id': team.id, 'name': team.name} for team in teams])
+
+@vote_bp.route('/nfl/submit_vote', methods=['POST'])
+def submit_nfl_vote():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.json or {}
+    week = data.get('week')
+    team_names = data.get('rankings') or []
+
+    if week is None:
+        return jsonify({'error': 'Week is required'}), 400
+
+    if len(team_names) != NFL_TEAM_COUNT:
+        return jsonify({'error': f'Please rank all {NFL_TEAM_COUNT} teams'}), 400
+
+    if len(set(team_names)) != NFL_TEAM_COUNT:
+        return jsonify({'error': 'Duplicate teams in rankings'}), 400
+
+    all_teams = {team.name: team for team in NflTeam.query.all()}
+    if len(all_teams) != NFL_TEAM_COUNT:
+        return jsonify({'error': 'NFL teams are not seeded correctly'}), 500
+
+    missing = set(all_teams.keys()) - set(team_names)
+    if missing:
+        return jsonify({'error': f'Missing teams: {", ".join(sorted(missing))}'}), 400
+
+    NflVote.query.filter_by(user_id=session['user_id'], week=week).delete()
+
+    for rank, team_name in enumerate(team_names, start=1):
+        team = all_teams[team_name]
+        db.session.add(NflVote(
+            user_id=session['user_id'],
+            week=week,
+            team_id=team.id,
+            rank=rank,
+        ))
+
+    db.session.commit()
+    return jsonify({'message': 'NFL vote submitted'})
+
+@vote_bp.route('/nfl/my_votes', methods=['GET'])
+def nfl_my_votes():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    votes = db.session.query(
+        NflVote.week, NflTeam.name, NflVote.rank
+    ).join(NflTeam).filter(NflVote.user_id == session['user_id']).all()
+    vote_history = {}
+    for week, team, rank in votes:
+        vote_history.setdefault(week, [])
+        vote_history[week].append((rank, team))
+    return jsonify({
+        week: {
+            'ranked': [t for _, t in sorted(ranks)],
+        }
+        for week, ranks in vote_history.items()
+    })
+
+@vote_bp.route('/nfl/consensus/<int:week>', methods=['GET'])
+def nfl_consensus(week):
+    results = db.session.query(
+        NflTeam.name,
+        func.sum(33 - NflVote.rank).label('points')
+    ).join(NflTeam).filter(
+        NflVote.week == week, NflVote.rank > 0
+    ).group_by(NflTeam.name).order_by(func.sum(33 - NflVote.rank).desc()).all()
+
+    return jsonify({
+        'ranked': [{'team': r[0], 'points': r[1]} for r in results],
+        'unranked': [],
+    })
+
+@vote_bp.route('/nfl/leaderboard/overall', methods=['GET'])
+def nfl_overall_leaderboard():
+    results = db.session.query(
+        NflTeam.name,
+        func.sum(33 - NflVote.rank).label('points')
+    ).join(NflTeam).filter(
+        NflVote.rank > 0
+    ).group_by(NflTeam.name).order_by(func.sum(33 - NflVote.rank).desc()).all()
+
+    return jsonify({
+        'ranked': [{'team': r[0], 'points': r[1]} for r in results],
+        'unranked': [],
+    })
+
+@vote_bp.route('/nfl/stats', methods=['GET'])
+def nfl_stats():
+    week_stats = db.session.query(
+        NflVote.week,
+        func.count(NflVote.user_id.distinct()).label('voters'),
+        func.count(NflVote.id).label('total_votes')
+    ).group_by(NflVote.week).order_by(NflVote.week).all()
+
+    return jsonify({
+        'weeks': [{'week': w, 'voters': v, 'total_votes': t} for w, v, t in week_stats]
+    })
 
 @vote_bp.route('/submit_vote', methods=['POST'])
 def submit_vote():

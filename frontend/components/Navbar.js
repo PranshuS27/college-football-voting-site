@@ -38,7 +38,7 @@ export default function Navbar() {
               cursor="pointer"
               onClick={() => router.push('/')}
             >
-              CFB VOTING
+              FOOTBALL VOTING
             </Text>
             
             <HStack spacing={4}>
@@ -48,7 +48,15 @@ export default function Navbar() {
                 size="sm"
                 onClick={() => router.push('/vote')}
               >
-                Vote
+                CFB
+              </Button>
+              <Button 
+                variant={isActivePage('/nfl') ? 'solid' : 'ghost'}
+                colorScheme="brand"
+                size="sm"
+                onClick={() => router.push('/nfl')}
+              >
+                NFL
               </Button>
               <Button 
                 variant={isActivePage('/leaderboard') ? 'solid' : 'ghost'}

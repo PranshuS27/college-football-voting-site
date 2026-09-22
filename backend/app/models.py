@@ -34,3 +34,16 @@ class Vote(db.Model):
     week = db.Column(db.Integer, nullable=False)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     rank = db.Column(db.Integer, nullable=False)
+
+class NflTeam(db.Model):
+    __tablename__ = 'nfl_team'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+
+class NflVote(db.Model):
+    __tablename__ = 'nfl_vote'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    week = db.Column(db.Integer, nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('nfl_team.id'), nullable=False)
+    rank = db.Column(db.Integer, nullable=False)
